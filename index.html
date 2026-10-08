@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎃 Baby Photo Guesser</title>
+<style>
+  :root {
+    --bg-0: #0b0713;
+    --bg-1: #1a1030;
+    --card: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #f3eefc;
+    --muted: #b9a8d8;
+    --orange: #ff8c1a;
+    --orange-soft: #ffb066;
+    --purple: #a78bfa;
+    --green: #4ade80;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, var(--bg-1), var(--bg-0));
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  [hidden] { display: none !important; }
+  button {
+    font: inherit;
+    color: inherit;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    background: var(--card);
+    transition: transform 0.08s ease, filter 0.15s ease, background 0.15s ease;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--orange), #ff5e00);
+    color: #1a0d00;
+    font-weight: 800;
+    padding: 18px 40px;
+    font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+    box-shadow: 0 8px 30px rgba(255, 140, 26, 0.35);
+  }
+  .btn-big { padding: 22px 52px; font-size: clamp(1.4rem, 3vw, 2.2rem); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .btn-green { background: linear-gradient(135deg, #34d399, #059669); color: #03271a; font-weight: 700; }
+  .btn-red-soft { background: rgba(248, 113, 113, 0.16); border: 1px solid rgba(248, 113, 113, 0.45); color: #fecaca; }
+  kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-family: inherit;
+    font-size: 0.85em;
+    color: var(--muted);
+  }
+
+  /* ---------- screens ---------- */
+  .screen { min-height: 100vh; display: flex; flex-direction: column; }
+  #setup-screen { align-items: center; justify-content: center; gap: 26px; padding: 40px 20px; }
+  .app-title { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 900; letter-spacing: -0.02em; }
+  .app-subtitle { color: var(--muted); font-size: clamp(1rem, 2vw, 1.25rem); margin-top: 6px; }
+
+  #resume-banner {
+    background: rgba(167, 139, 250, 0.14);
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    border-radius: 16px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    max-width: 720px;
+  }
+  #resume-banner .msg { flex: 1; min-width: 200px; }
+  #resume-banner .msg b { color: var(--purple); }
+
+  #dropzone {
+    width: min(680px, 92vw);
+    border: 3px dashed rgba(255, 140, 26, 0.55);
+    border-radius: 24px;
+    padding: 48px 30px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    background: rgba(255, 140, 26, 0.05);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  #dropzone.dragover { background: rgba(255, 140, 26, 0.16); border-color: var(--orange); }
+  #dropzone .dz-emoji { font-size: 3.4rem; }
+  #dropzone .dz-main { font-size: clamp(1.15rem, 2.4vw, 1.5rem); font-weight: 700; }
+  #dropzone .dz-alt { color: var(--muted); }
+  #load-status { min-height: 1.6em; font-size: 1.05rem; color: var(--green); font-weight: 600; }
+  #load-status.err { color: var(--red); }
+
+  .setup-panel {
+    width: min(680px, 92vw);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .stepper-row { display: flex; align-items: center; gap: 18px; font-size: 1.15rem; font-weight: 700; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper button { width: 44px; height: 44px; font-size: 1.5rem; font-weight: 800; }
+  .stepper .count { font-size: 1.6rem; min-width: 2ch; text-align: center; color: var(--orange); }
+  #player-inputs { display: flex; flex-direction: column; gap: 10px; }
+  #player-inputs input {
+    font: inherit;
+    background: rgba(0,0,0,0.35);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    width: 100%;
+  }
+  #player-inputs input:focus { outline: 2px solid var(--orange); border-color: transparent; }
+  .hint-line { color: var(--muted); font-size: 0.95rem; }
+
+  /* ---------- game ---------- */
+  #game-topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  #game-topbar .brand { font-size: 1.6rem; }
+  #progress { color: var(--muted); font-weight: 700; font-size: 1.05rem; }
+  #scoreboard { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+  .score-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-weight: 700;
+  }
+  .score-chip .key {
+    background: rgba(255,255,255,0.12);
+    border-radius: 6px;
+    font-size: 0.8em;
+    padding: 1px 6px;
+    color: var(--muted);
+  }
+  .score-chip .pts { color: var(--orange); font-variant-numeric: tabular-nums; }
+  .score-chip.leader { border-color: var(--orange); box-shadow: 0 0 16px rgba(255,140,26,0.35); }
+  .topbar-actions { display: flex; gap: 8px; }
+
+  #stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 18px;
+    min-height: 0;
+  }
+  .stage-view { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; height: 100%; }
+
+  #idle-view { justify-content: center; gap: 26px; }
+  #idle-view .idle-eyebrow { color: var(--muted); font-size: clamp(1rem, 2vw, 1.3rem); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  #idle-view .remaining { color: var(--muted); }
+  #idle-view .remaining b { color: var(--text); font-size: 1.3em; }
+
+  #photo-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #photo-img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 18px;
+    box-shadow: 0 20px 70px rgba(0,0,0,0.6);
+    object-fit: contain;
+    background: #000;
+  }
+  #photo-img.land-pop { animation: land-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+  /* shrink the photo once the name banner + score buttons are on screen */
+  #photo-view.is-revealed #photo-img { max-height: 48vh; }
+  #photo-view.is-revealed #photo-missing { max-height: 48vh; overflow: hidden; }
+  @keyframes land-pop {
+    0% { transform: scale(1.08); filter: brightness(1.6); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  .photo-missing {
+    border: 2px dashed var(--border);
+    border-radius: 18px;
+    padding: 60px 40px;
+    color: var(--muted);
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
+  #shuffle-label {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 26px;
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    font-weight: 800;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #guess-hint { color: var(--muted); font-size: clamp(1rem, 2vw, 1.25rem); }
+  #reveal-btn { padding: 16px 44px; font-size: clamp(1.1rem, 2.2vw, 1.45rem); font-weight: 800; }
+
+  #name-banner {
+    background: linear-gradient(135deg, rgba(255,140,26,0.22), rgba(167,139,250,0.22));
+    border: 2px solid var(--orange);
+    border-radius: 20px;
+    padding: 18px 46px;
+    text-align: center;
+    animation: banner-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  @keyframes banner-in {
+    0% { transform: translateY(40px) scale(0.9); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  #name-banner .who { color: var(--muted); font-size: clamp(0.9rem, 1.6vw, 1.1rem); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 800; }
+  #name-banner .name {
+    font-size: clamp(2rem, 5.5vw, 4rem);
+    font-weight: 900;
+    background: linear-gradient(120deg, var(--orange-soft), var(--orange));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1.15;
+  }
+  #guessed-by { margin-top: 6px; font-weight: 700; color: var(--green); min-height: 1.4em; font-size: clamp(0.95rem, 1.8vw, 1.2rem); }
+
+  #award-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  #award-row .lbl { width: 100%; text-align: center; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; }
+  .btn-gm {
+    padding: 14px 26px;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: rgba(74, 222, 128, 0.1);
+  }
+  .btn-gm.awarded { background: linear-gradient(135deg, #34d399, #059669); color: #03271a; }
+  .btn-gm .key { opacity: 0.65; font-size: 0.8em; margin-right: 6px; }
+  #btn-none { padding: 14px 24px; font-size: clamp(0.95rem, 1.8vw, 1.15rem); }
+  #btn-none.awarded { background: var(--red); color: #2b0606; font-weight: 800; }
+
+  #reveal-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+  /* ---------- finale ---------- */
+  #finale-screen { padding: 40px 24px; align-items: center; gap: 30px; overflow-y: auto; }
+  #champion-banner { text-align: center; }
+  #champion-banner .crown { font-size: clamp(3rem, 8vw, 5.5rem); animation: crown-bounce 1.6s ease-in-out infinite; }
+  @keyframes crown-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  #champion-banner .title { font-size: clamp(1.4rem, 3.5vw, 2.2rem); color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; }
+  #champion-banner .names {
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    font-weight: 900;
+    background: linear-gradient(120deg, var(--orange-soft), var(--orange), #ffd28a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  #standings { display: flex; flex-direction: column; gap: 12px; width: min(560px, 94vw); }
+  .standing-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 22px;
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    font-weight: 700;
+  }
+  .standing-row .medal { font-size: 1.4em; width: 1.6em; }
+  .standing-row .pname { flex: 1; }
+  .standing-row .score { color: var(--orange); font-variant-numeric: tabular-nums; }
+  .standing-row.winner { border-color: var(--orange); box-shadow: 0 0 22px rgba(255,140,26,0.3); }
+
+  #finale-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+  #recap { width: min(1100px, 96vw); }
+  #recap h2 { text-align: center; margin-bottom: 18px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-size: clamp(1rem, 2vw, 1.3rem); }
+  #recap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .recap-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .recap-card img, .recap-card .photo-missing {
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+    display: block;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+  }
+  .recap-card .photo-missing { display: flex; align-items: center; justify-content: center; color: var(--muted); background: rgba(0,0,0,0.4); }
+  .recap-card .rc-body { padding: 10px 14px 12px; }
+  .recap-card .rc-name { font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
+  .recap-card .rc-chip { margin-top: 6px; font-size: 0.85rem; font-weight: 700; color: var(--green); }
+  .recap-card .rc-chip.missed { color: var(--muted); }
+
+  #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+  @media (max-width: 640px) {
+    #game-topbar { padding: 10px 12px; gap: 8px; }
+    .score-chip { padding: 5px 10px; font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ SETUP ============================ -->
+<section class="screen" id="setup-screen">
+  <div style="text-align:center">
+    <h1 class="app-title">🎃 Baby Photo Guesser</h1>
+    <p class="app-subtitle">Baby photos in. Names out. One survivor.</p>
+  </div>
+
+  <div id="resume-banner" hidden>
+    <div class="msg" id="resume-msg"></div>
+    <button class="btn-green" id="btn-resume" style="padding:12px 22px;font-size:1rem">▶&nbsp;Resume game</button>
+    <button class="btn-red-soft" id="btn-discard" style="padding:12px 18px;font-size:1rem">✖ Discard</button>
+  </div>
+
+  <div id="dropzone">
+    <div class="dz-emoji" id="dz-emoji">📂</div>
+    <div class="dz-main" id="dz-main">Drag your photos folder here</div>
+    <div class="dz-alt">…or</div>
+    <button id="btn-pick" style="padding:12px 26px;font-size:1.05rem;font-weight:700">📂 Choose folder…</button>
+    <input type="file" id="folder-input" webkitdirectory multiple hidden>
+  </div>
+
+  <div id="load-status"></div>
+
+  <div class="setup-panel">
+    <div class="stepper-row">
+      <span>Players</span>
+      <div class="stepper">
+        <button id="btn-less" aria-label="fewer players">−</button>
+        <span class="count" id="player-count">3</span>
+        <button id="btn-more" aria-label="more players">+</button>
+      </div>
+    </div>
+    <div id="player-inputs"></div>
+    <div class="hint-line">Leave a name blank and it becomes “Player 1”, “Player 2”, … — photo files: <b>Firstname Lastname.jpg</b></div>
+  </div>
+
+  <button class="btn-primary" id="btn-start" disabled>Start the game&nbsp;🎃</button>
+</section>
+
+<!-- ============================ GAME ============================ -->
+<section class="screen" id="game-screen" hidden>
+  <header id="game-topbar">
+    <span class="brand">🎃</span>
+    <span id="progress"></span>
+    <div id="scoreboard"></div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" id="btn-mute" title="Mute (M)">🔊</button>
+      <button class="btn-ghost" id="btn-fs" title="Fullscreen (F)">⛶</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <!-- idle: waiting for host to spin -->
+    <div class="stage-view" id="idle-view">
+      <div class="idle-eyebrow" id="idle-eyebrow">Ready when you are</div>
+      <button class="btn-primary btn-big" id="btn-spin">🎰&nbsp;Spin the slot</button>
+      <button class="btn-ghost" id="btn-finish-idle" style="padding:12px 26px">Finish early &amp; see results&nbsp;🏆 <kbd>E</kbd></button>
+      <div class="remaining" id="idle-remaining"></div>
+      <div class="hint-line"><kbd>→</kbd> next photo · <kbd>Space</kbd> reveal · <kbd>1</kbd>–<kbd>6</kbd> tick correct players · <kbd>N</kbd> no one · <kbd>U</kbd> undo · <kbd>E</kbd> finish early · <kbd>F</kbd> fullscreen · <kbd>M</kbd> mute</div>
+    </div>
+
+    <!-- shuffling / guessing / revealed all share the photo -->
+    <div class="stage-view" id="photo-view" hidden>
+      <div id="photo-wrap">
+        <img id="photo-img" alt="mystery baby photo">
+        <div id="photo-missing" class="photo-missing" hidden>📷<br>This photo isn’t in the loaded folder</div>
+        <div id="shuffle-label" hidden>🎰 Who is this baby…?</div>
+      </div>
+
+      <button id="reveal-btn" hidden>👁&nbsp;Reveal the name <kbd style="margin-left:8px">Space</kbd></button>
+
+      <div id="reveal-zone" hidden style="display:flex;flex-direction:column;gap:16px;align-items:center">
+        <div id="name-banner">
+          <div class="who">It was…</div>
+          <div class="name" id="revealed-name"></div>
+          <div id="guessed-by"></div>
+        </div>
+        <div id="award-row"></div>
+        <div id="reveal-controls">
+          <button class="btn-ghost" id="btn-undo" style="padding:10px 18px">↩ Undo <kbd>U</kbd></button>
+          <button class="btn-primary" id="btn-next" style="padding:14px 36px;font-size:1.2rem">Next photo&nbsp;→</button>
+          <button class="btn-primary" id="btn-finish" style="padding:14px 36px;font-size:1.2rem">Finish game&nbsp;🏆 <kbd>E</kbd></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ============================ FINALE ============================ -->
+<section class="screen" id="finale-screen" hidden>
+  <div id="champion-banner">
+    <div class="crown">🏆</div>
+    <div class="title" id="champion-title">Champion</div>
+    <div class="names" id="champion-names"></div>
+  </div>
+
+  <div id="standings"></div>
+
+  <div id="finale-actions">
+    <button class="btn-ghost" id="btn-undo-finale" style="padding:12px 20px">↩ Undo last award <kbd>U</kbd></button>
+    <button class="btn-green" id="btn-play-again" style="padding:14px 26px;font-size:1.05rem">🔁 Play again (same photos)</button>
+    <button class="btn-ghost" id="btn-new-game" style="padding:14px 26px">🆕 New game</button>
+  </div>
+
+  <div id="recap">
+    <h2>📸 The gallery — who was that baby?</h2>
+    <div id="recap-grid"></div>
+  </div>
+</section>
+
+<canvas id="confetti-canvas" hidden></canvas>
+
+<script>
+'use strict';
+
+/* ============================================================
+ * Baby Photo Guesser — single-file, offline, no dependencies.
+ * Flow: drop folder → 2–6 named players → slot-machine flicker →
+ * host reveal → tick every player who guessed right → confetti finale
+ * (finish early anytime — you never have to play the whole pool).
+ * ============================================================ */
+
+const $ = (s) => document.querySelector(s);
+
+const SAVE_KEY = 'halloween-guesser-v1';
+const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
+
+/* ---------------- state ---------------- */
+let photos = [];        // [{path, display, url}]  url = object URL (null if unavailable)
+let players = [];       // [{name, score}]
+let order = [];         // photo indices, Fisher–Yates shuffled
+let awards = [];        // [{orderPos, photoIdx, type:'player'|'none', playerIdx}]
+let sub = 'idle';       // idle | shuffle | guess | revealed
+let curPos = -1;        // position within `order` of the photo in play (-1 = none)
+let liveWinners = new Set(); // players ticked as correct for the photo being revealed (uncommitted)
+let screen = 'setup';   // setup | game | finale
+let playerCount = 3;
+let playerNamesDraft = ['', '', ''];
+let savedGame = null;   // parsed localStorage save (if resumable)
+let resumeMode = false; // true after clicking Resume: next folder pick restores the game
+let shuffleToken = 0;   // guards stale flicker timers
+
+/* ---------------- audio (synthesized, no files) ---------------- */
+const Sound = {
+  ctx: null,
+  muted: false,
+  ensure() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) this.ctx = new AC();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tick() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'square';
+    o.frequency.value = 1850 + Math.random() * 350;
+    g.gain.setValueAtTime(0.07, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + 0.045);
+  },
+  ding() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    // bell-ish partials
+    [[1318.5, 0.14], [1975.5, 0.055], [2637, 0.03]].forEach(([f, vol]) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(t); o.stop(t + 1.0);
+    });
+  },
+};
+
+/* ---------------- helpers ---------------- */
+function displayName(filename) {
+  let n = filename.replace(/\.[^.]+$/, '');
+  n = n.replace(/\(\d+\)/gi, ' ');        // "john (1).jpg"
+  n = n.replace(/[_\-.+[\]]+/g, ' ');     // separators -> spaces
+  n = n.replace(/\s+/g, ' ').trim();
+  if (!n) return filename;
+  return n.split(' ').map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function shuffleIndices(n) {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ---------------- persistence ---------------- */
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      players,
+      order,
+      awards,
+      photos: photos.map((p) => ({ path: p.path, display: p.display })),
+    }));
+  } catch (e) { /* storage full/blocked — game still playable, just not resumable */ }
+}
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.photos) || !Array.isArray(s.order) || !Array.isArray(s.players) || !Array.isArray(s.awards)) return null;
+    // migrate pre-multi-winner saves: {type:'player'|'none', playerIdx} -> {winners:[...]}
+    s.awards = s.awards.map((a) => a.winners ? a : {
+      orderPos: a.orderPos,
+      photoIdx: a.photoIdx,
+      winners: a.type === 'player' && a.playerIdx != null ? [a.playerIdx] : [],
+    });
+    return s;
+  } catch (e) { return null; }
+}
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+
+/* ---------------- screens ---------------- */
+function showScreen(name) {
+  screen = name;
+  $('#setup-screen').hidden = name !== 'setup';
+  $('#game-screen').hidden = name !== 'game';
+  $('#finale-screen').hidden = name !== 'finale';
+}
+
+/* ---------------- folder ingestion ---------------- */
+async function entriesFromDataTransfer(dt) {
+  const entries = [];
+  const roots = [];
+  for (const item of dt.items) {
+    const e = item.webkitGetAsEntry && item.webkitGetAsEntry();
+    if (e) roots.push(e);
+  }
+  async function traverse(entry, path) {
+    if (entry.isFile) {
+      const file = await new Promise((res, rej) => entry.file(res, rej)).catch(() => null);
+      if (file) entries.push({ file, path: path + file.name });
+      return;
+    }
+    if (entry.isDirectory) {
+      const reader = entry.createReader();
+      while (true) {
+        const batch = await new Promise((res) => reader.readEntries(res, () => res([])));
+        if (!batch.length) break;
+        for (const e of batch) await traverse(e, path + entry.name + '/');
+      }
+    }
+  }
+  for (const e of roots) await traverse(e, '');
+  return entries;
+}
+
+function ingest(entries) {
+  const usable = [];
+  let skipped = 0;
+  for (const { file, path } of entries) {
+    if (IMG_RE.test(file.name)) usable.push({ file, path });
+    else skipped++;
+  }
+  if (resumeMode) { tryResume(usable, skipped); return; }
+
+  photos.forEach((p) => p.url && URL.revokeObjectURL(p.url));
+  const seen = new Map();
+  photos = usable.map(({ file, path }) => {
+    let p = path;
+    if (seen.has(p)) { const n = seen.get(p) + 1; seen.set(p, n); p = p + ' #' + n; } else seen.set(p, 1);
+    return { path: p, display: displayName(file.name), url: URL.createObjectURL(file) };
+  });
+
+  const st = $('#load-status');
+  st.classList.remove('err');
+  if (photos.length === 0) {
+    st.textContent = skipped ? `⚠ No photos found — ${skipped} file${skipped > 1 ? 's' : ''} skipped (only jpg / png / webp / gif work; convert HEIC!)`
+                             : '⚠ No photos in that folder.';
+    st.classList.add('err');
+  } else {
+    st.textContent = `${photos.length} photo${photos.length > 1 ? 's' : ''} ready` +
+                     (skipped ? ` · ${skipped} skipped` : '') + ' 🎃';
+  }
+  updateStartEnabled();
+}
+
+function tryResume(usable) {
+  const byPath = new Map(usable.map((e) => [e.path, e]));
+  let matched = 0;
+  const rebuilt = savedGame.photos.map((sp) => {
+    const e = byPath.get(sp.path);
+    if (e) { matched++; return { ...sp, url: URL.createObjectURL(e.file) }; }
+    return { ...sp, url: null };
+  });
+  if (matched === 0) {
+    const st = $('#load-status');
+    st.classList.add('err');
+    st.textContent = '⚠ None of those files match the saved game — pick the same photos folder.';
+    return;
+  }
+  players = savedGame.players.map((p) => ({ ...p }));
+  order = savedGame.order.slice();
+  awards = savedGame.awards.map((a) => ({ ...a }));
+  photos = rebuilt;
+  resumeMode = false;
+  savedGame = null;
+  $('#resume-banner').hidden = true;
+  $('#dz-main').textContent = 'Drag your photos folder here';
+  $('#dz-emoji').textContent = '📂';
+  const st = $('#load-status');
+  st.classList.remove('err');
+  st.textContent = `Game restored — ${matched}/${rebuilt.length} photos matched` +
+                   (matched < rebuilt.length ? ' (missing ones will show a placeholder)' : '');
+  save();
+  Sound.ensure();
+  if (awards.length >= order.length) showFinale();
+  else { showScreen('game'); curPos = -1; liveWinners = new Set(); setSub('idle'); }
+}
+
+/* ---------------- setup UI ---------------- */
+function renderPlayerInputs() {
+  const box = $('#player-inputs');
+  while (box.children.length < playerCount) {
+    const i = box.children.length;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = `Player ${i + 1}`;
+    inp.maxLength = 24;
+    inp.addEventListener('input', () => { playerNamesDraft[i] = inp.value; });
+    box.appendChild(inp);
+  }
+  while (box.children.length > playerCount) box.removeChild(box.lastChild);
+  playerNamesDraft.length = playerCount;
+  box.childNodes.forEach((inp, i) => { if (inp.value === '' ) inp.placeholder = `Player ${i + 1}`; });
+  $('#player-count').textContent = playerCount;
+}
+function updateStartEnabled() {
+  $('#btn-start').disabled = photos.length === 0;
+}
+
+function startGame() {
+  players = playerNamesDraft.map((n, i) => ({ name: n.trim() || `Player ${i + 1}`, score: 0 }));
+  order = shuffleIndices(photos.length);
+  awards = [];
+  curPos = -1;
+  liveWinners = new Set();
+  save();
+  Sound.ensure();
+  showScreen('game');
+  setSub('idle');
+}
+
+/* ---------------- game flow ---------------- */
+const doneCount = () => awards.length;
+const isDone = () => awards.length >= order.length;
+const nextPhotoIdx = () => order[awards.length];
+
+function setSub(next) {
+  sub = next;
+  render();
+}
+
+/* show a photo on the main stage (handles photos missing after a resume) */
+function setStagePhoto(p) {
+  const img = $('#photo-img');
+  const miss = $('#photo-missing');
+  if (p && p.url) {
+    img.hidden = false;
+    miss.hidden = true;
+    img.src = p.url;
+  } else {
+    img.hidden = true;
+    miss.hidden = false;
+    img.removeAttribute('src');
+  }
+}
+
+function startFlicker() {
+  if (isDone()) { curPos = -1; showFinale(); return; }
+  curPos = awards.length;
+  const target = order[curPos];
+  const token = ++shuffleToken;
+  sub = 'shuffle';
+
+  const pool = photos.filter((p) => p.url && p !== photos[target]);
+  const flickerPool = pool.length ? pool : photos.filter((p) => p.url);
+
+  let delay = 55;
+  const started = performance.now();
+  const img = $('#photo-img');
+
+  (function step() {
+    if (token !== shuffleToken) return; // stale timer
+    const pick = flickerPool[Math.floor(Math.random() * flickerPool.length)];
+    setStagePhoto(pick);
+    Sound.tick();
+    delay = Math.min(430, delay * 1.22);
+    if (performance.now() - started > 2500 && delay > 300) {
+      // land
+      const p = photos[target];
+      setStagePhoto(p);
+      if (p.url) {
+        img.classList.remove('land-pop');
+        void img.offsetWidth; // restart animation
+        img.classList.add('land-pop');
+      }
+      Sound.ding();
+      setSub('guess');
+    } else {
+      setTimeout(step, delay);
+    }
+  })();
+  render();
+}
+
+function reveal() {
+  if (sub !== 'guess') return;
+  Sound.ensure();
+  setSub('revealed');
+}
+
+/* scores are always derived from committed awards — no incremental drift */
+function recomputeScores() {
+  players.forEach((p) => (p.score = 0));
+  for (const a of awards) for (const w of a.winners) players[w].score++;
+}
+
+function toggleWinner(i) {
+  if (sub !== 'revealed' || i >= players.length) return;
+  if (liveWinners.has(i)) liveWinners.delete(i);
+  else liveWinners.add(i);
+  render();
+}
+
+function clearWinners() {
+  if (sub !== 'revealed' || liveWinners.size === 0) return;
+  liveWinners.clear();
+  render();
+}
+
+/* commit the current photo's ticks into the results, then continue */
+function commitCurrent() {
+  if (curPos < 0) return;
+  awards[curPos] = { orderPos: curPos, photoIdx: order[curPos], winners: [...liveWinners] };
+  liveWinners = new Set();
+  recomputeScores();
+  save();
+}
+
+function undo() {
+  shuffleToken++; // cancel any in-flight flicker
+  // first undo on a live selection: just un-tick everything
+  if (screen === 'game' && sub === 'revealed' && liveWinners.size > 0) {
+    liveWinners.clear();
+    render();
+    return;
+  }
+  // otherwise: step back into the last committed photo, its winners re-ticked for editing
+  const last = awards[awards.length - 1];
+  if (!last) return;
+  awards.pop();
+  recomputeScores();
+  showScreen('game');
+  sub = 'revealed';
+  curPos = last.orderPos;
+  liveWinners = new Set(last.winners);
+  setStagePhoto(photos[last.photoIdx]);
+  save();
+  render();
+}
+
+function advance() {
+  Sound.ensure(); // keyboard path may not have unlocked audio yet
+  if (screen === 'finale') return;
+  if (sub === 'idle') { startFlicker(); return; }
+  if (sub !== 'revealed') return;
+  commitCurrent();
+  if (isDone()) { curPos = -1; showFinale(); }
+  else startFlicker();
+}
+
+/* stop early — with a big photo pool you never have to play them all */
+function finishGame() {
+  if (screen !== 'game') return;
+  shuffleToken++; // cancel any in-flight flicker
+  if (sub === 'revealed') commitCurrent();
+  curPos = -1;
+  sub = 'idle';
+  save();
+  showFinale();
+}
+
+/* ---------------- finale ---------------- */
+function showFinale() {
+  showScreen('finale');
+  renderFinale();
+  confetti();
+}
+
+function renderFinale() {
+  const rows = players
+    .map((p, i) => ({ ...p, i }))
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  const top = rows[0].score;
+  const winners = rows.filter((r) => r.score === top);
+
+  $('#champion-title').textContent = winners.length > 1 ? 'Co-Champions' : 'Champion';
+  $('#champion-names').textContent = winners.map((w) => w.name).join(' & ');
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const ranks = rows.map((r) => rows.filter((x) => x.score > r.score).length);
+  $('#standings').innerHTML = rows.map((r, idx) => `
+    <div class="standing-row ${r.score === top ? 'winner' : ''}">
+      <span class="medal">${medals[ranks[idx]] ?? ''}</span>
+      <span class="pname">${escapeHtml(r.name)}</span>
+      <span class="score">${r.score} pt${r.score === 1 ? '' : 's'}</span>
+    </div>`).join('');
+
+  // recap gallery — only the photos actually played (early finish supported)
+  $('#recap-grid').innerHTML = awards.map((a) => {
+    const p = photos[a.photoIdx];
+    const chip = a.winners.length
+      ? `<div class="rc-chip">✔ ${a.winners.map((w) => escapeHtml(players[w] ? players[w].name : '?')).join(', ')}</div>`
+      : `<div class="rc-chip missed">— no one got it</div>`;
+    const visual = p && p.url
+      ? `<img src="${p.url}" alt="">`
+      : `<div class="photo-missing">📷<br>photo unavailable</div>`;
+    return `<div class="recap-card">${visual}<div class="rc-body">
+      <div class="rc-name">${escapeHtml(p ? p.display : '?')}</div>${chip}
+    </div></div>`;
+  }).join('');
+
+  $('#btn-undo-finale').disabled = awards.length === 0;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+/* ---------------- confetti ---------------- */
+let confettiRAF = 0;
+function confetti() {
+  const canvas = $('#confetti-canvas');
+  canvas.hidden = false;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#ff8c1a', '#a78bfa', '#4ade80', '#fbbf24', '#f472b6', '#e2e8f0'];
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize();
+  addEventListener('resize', resize, { once: false });
+
+  const parts = Array.from({ length: 170 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -20 - Math.random() * canvas.height * 0.8,
+    w: 7 + Math.random() * 8,
+    h: 10 + Math.random() * 10,
+    c: colors[Math.floor(Math.random() * colors.length)],
+    vy: 1.8 + Math.random() * 2.6,
+    vx: -1.2 + Math.random() * 2.4,
+    rot: Math.random() * Math.PI,
+    vr: -0.12 + Math.random() * 0.24,
+  }));
+
+  const started = performance.now();
+  cancelAnimationFrame(confettiRAF);
+  (function loop(now) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const fade = Math.max(0, 1 - (now - started) / 6500);
+    if (fade <= 0) { canvas.hidden = true; removeEventListener('resize', resize); return; }
+    ctx.globalAlpha = fade;
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if (p.y > canvas.height + 30) { p.y = -20; p.x = Math.random() * canvas.width; }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    confettiRAF = requestAnimationFrame(loop);
+  })(started);
+}
+
+/* ---------------- render ---------------- */
+function render() {
+  // top bar
+  const maxScore = players.length ? Math.max(...players.map((p) => p.score)) : 0;
+  $('#scoreboard').innerHTML = players.map((p, i) => `
+    <div class="score-chip ${players.length > 1 && p.score === maxScore && maxScore > 0 ? 'leader' : ''}">
+      <span class="key">${i + 1}</span>
+      <span>${escapeHtml(p.name)}</span>
+      <span class="pts">${p.score}</span>
+    </div>`).join('');
+
+  const inPlay = (sub === 'shuffle' || sub === 'guess' || sub === 'revealed') ? 1 : 0;
+  $('#progress').textContent = order.length
+    ? `${Math.min(awards.length + inPlay, order.length)} / ${order.length} photos` : '';
+
+  // stage views
+  $('#idle-view').hidden = sub !== 'idle';
+  $('#photo-view').hidden = sub === 'idle';
+  $('#photo-view').classList.toggle('is-revealed', sub === 'revealed');
+
+  if (sub === 'idle') {
+    const remaining = order.length - awards.length;
+    $('#idle-eyebrow').textContent = awards.length === 0 ? 'Ready when you are' : 'Next photo, please';
+    $('#idle-remaining').innerHTML = `<b>${remaining}</b> photo${remaining === 1 ? '' : 's'} still hiding`;
+    $('#btn-spin').textContent = `🎰 Spin the slot`;
+  }
+
+  $('#shuffle-label').hidden = sub !== 'shuffle';
+  $('#reveal-btn').hidden = sub !== 'guess';
+  $('#reveal-zone').hidden = sub !== 'revealed';
+
+  if (sub === 'revealed') {
+    const p = photos[order[curPos]];
+    $('#revealed-name').textContent = p ? p.display : '?';
+
+    const names = [...liveWinners].sort((a, b) => a - b).map((i) => players[i].name);
+    $('#guessed-by').textContent = names.length
+      ? `✔ ${names.join(', ')} called it!`
+      : '🚫 Nobody got it…';
+
+    $('#award-row').innerHTML =
+      `<div class="lbl">Who guessed right? Tick everyone who did</div>` +
+      players.map((pl, i) => `
+        <button class="btn-gm ${liveWinners.has(i) ? 'awarded' : ''}"
+                data-gm="${i}"><span class="key">${i + 1}</span>${escapeHtml(pl.name)}</button>`).join('') +
+      `<button id="btn-none" class="btn-red-soft">🚫 No one got it <kbd>N</kbd></button>`;
+
+    $('#award-row').querySelectorAll('[data-gm]').forEach((b) => {
+      b.addEventListener('click', () => toggleWinner(+b.dataset.gm));
+    });
+    const noneBtn = $('#btn-none');
+    if (noneBtn) noneBtn.addEventListener('click', clearWinners);
+  }
+}
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea')) return;
+  const k = e.key;
+
+  if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if (k === 'f' || k === 'F') { toggleFullscreen(); return; }
+
+  if (screen === 'game') {
+    if (sub === 'idle' && (k === 'ArrowRight' || k === 'Enter') && !e.repeat) { e.preventDefault(); advance(); }
+    else if (sub === 'idle' && (k === 'e' || k === 'E')) finishGame();
+    else if (sub === 'guess' && (k === ' ' || k === 'Enter') && !e.repeat) { e.preventDefault(); reveal(); }
+    else if (sub === 'revealed') {
+      if ((k === 'ArrowRight' || k === 'Enter') && !e.repeat) { e.preventDefault(); advance(); }
+      else if (k === 'e' || k === 'E') finishGame();
+      else if (/^[1-6]$/.test(k)) toggleWinner(+k - 1);
+      else if (k === 'n' || k === 'N') clearWinners();
+      else if (k === 'u' || k === 'U') undo();
+    }
+  } else if (screen === 'finale') {
+    if (k === 'u' || k === 'U') undo();
+  }
+});
+
+/* ---------------- buttons & wiring ---------------- */
+function toggleMute() {
+  Sound.muted = !Sound.muted;
+  $('#btn-mute').textContent = Sound.muted ? '🔇' : '🔊';
+}
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen().catch(() => {});
+}
+
+$('#btn-pick').addEventListener('click', () => $('#folder-input').click());
+$('#folder-input').addEventListener('change', (e) => {
+  const entries = [...e.target.files].map((f) => ({
+    file: f,
+    path: f.webkitRelativePath || f.name,
+  }));
+  ingest(entries);
+  e.target.value = '';
+});
+
+const dz = $('#dropzone');
+['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => {
+  e.preventDefault();
+  dz.classList.add('dragover');
+}));
+['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => {
+  e.preventDefault();
+  dz.classList.remove('dragover');
+}));
+dz.addEventListener('drop', async (e) => {
+  Sound.ensure();
+  let entries = null;
+  if (e.dataTransfer.items && e.dataTransfer.items.length && e.dataTransfer.items[0].webkitGetAsEntry) {
+    entries = await entriesFromDataTransfer(e.dataTransfer);
+  }
+  if (!entries || !entries.length) {
+    entries = [...e.dataTransfer.files].map((f) => ({ file: f, path: f.name }));
+  }
+  ingest(entries);
+});
+
+$('#btn-less').addEventListener('click', () => { playerCount = Math.max(2, playerCount - 1); renderPlayerInputs(); });
+$('#btn-more').addEventListener('click', () => { playerCount = Math.min(6, playerCount + 1); renderPlayerInputs(); });
+$('#btn-start').addEventListener('click', startGame);
+
+$('#btn-spin').addEventListener('click', () => { Sound.ensure(); advance(); });
+$('#reveal-btn').addEventListener('click', reveal);
+$('#btn-next').addEventListener('click', advance);
+$('#btn-finish').addEventListener('click', finishGame);
+$('#btn-finish-idle').addEventListener('click', finishGame);
+$('#btn-undo').addEventListener('click', undo);
+$('#btn-undo-finale').addEventListener('click', undo);
+$('#btn-mute').addEventListener('click', toggleMute);
+$('#btn-fs').addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  $('#btn-fs').textContent = document.fullscreenElement ? '⤡' : '⛶';
+});
+
+$('#btn-play-again').addEventListener('click', () => {
+  players.forEach((p) => (p.score = 0));
+  order = shuffleIndices(photos.length);
+  awards = [];
+  curPos = -1;
+  liveWinners = new Set();
+  save();
+  showScreen('game');
+  setSub('idle');
+});
+
+$('#btn-new-game').addEventListener('click', () => {
+  clearSave();
+  photos = [];
+  players = [];
+  order = [];
+  awards = [];
+  curPos = -1;
+  liveWinners = new Set();
+  $('#load-status').textContent = '';
+  updateStartEnabled();
+  showScreen('setup');
+});
+
+/* resume banner */
+$('#btn-resume').addEventListener('click', () => {
+  resumeMode = true;
+  $('#dz-main').textContent = 'Re-select your photos folder to resume';
+  $('#dz-emoji').textContent = '📂↩';
+  $('#load-status').textContent = 'Pick the same folder you used before';
+});
+$('#btn-discard').addEventListener('click', () => {
+  clearSave();
+  savedGame = null;
+  $('#resume-banner').hidden = true;
+});
+
+/* ---------------- boot ---------------- */
+renderPlayerInputs();
+showScreen('setup');
+
+(function checkResume() {
+  const s = loadSave();
+  if (!s) return;
+  if (s.awards.length >= s.order.length) { clearSave(); return; } // finished — nothing to resume
+  savedGame = s;
+  const names = s.players.map((p) => p.name).join(', ');
+  $('#resume-msg').innerHTML =
+    `Unfinished game found — <b>${escapeHtml(names)}</b> · ${s.awards.length}/${s.order.length} photos played.`;
+  $('#resume-banner').hidden = false;
+})();
+</script>
+</body>
+</html>
